@@ -29,3 +29,5 @@ origin (Required): Tracking can be setup to track entity type device_tracker. Th
 name (Optional): A name to display on the sensor. The default is “Google Geocode"
 
 options (Optional): Select what level of address information you want. Choices are 'street', 'city', or 'both'. The default is “street"
+
+zone (Optional): Select if you want to display which zone you are in rather that an address. Display address when 'not_home'. Choices are 'yes' or 'no' default is 'yes'.

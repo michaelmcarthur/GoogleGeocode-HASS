@@ -6,9 +6,9 @@ Google geocode is the process of converting device tracker location into a human
 
 You need to register for an API key by following the instructions [here](https://github.com/googlemaps/google-maps-services-python#api-keys). You only need to turn on the Geocoding API
 
-A free API Key allows 2500 requests per day. The sensor will update the address each time the device tracker location changes.
+A free API Key allows 2500 requests per day. The sensor will update the address each time the device tracker location changes. If the device tracker is in a zone it will display the zone.
 
-### Installation
+### Installation:
 
 Copy the google_geocode.py file and place it in <config_dir>/custom_components/sensor/google_geocode.py.
 
@@ -30,4 +30,11 @@ name (Optional): A name to display on the sensor. The default is “Google Geoco
 
 options (Optional): Select what level of address information you want. Choices are 'street', 'city', or 'both'. The default is “street"
 
-zone (Optional): Select if you want to display which zone you are in rather that an address. Display address when 'not_home'. Choices are 'yes' or 'no' default is 'yes'.
+### Example with optional entry for configuration.yaml
+```
+- platform: google_geocode
+  name: michael
+  api_key: XXXX_XXXXX_XXXXX
+  origin: device_tracker.mobile_phone
+  options: both
+```

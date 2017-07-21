@@ -109,12 +109,15 @@ class GoogleGeocode(Entity):
                 decoded = json.loads(json_input)
                 street = decoded['results'][0]['address_components'][1]['long_name']
                 city = decoded['results'][0]['address_components'][2]['long_name']
+                full = decoded['results'][0]['formatted_address']
                 if self._options == 'street':
                     ADDRESS = street
                 elif self._options == 'city':
                     ADDRESS = city
                 elif self._options == 'both':
                     ADDRESS = street + ", " + city
+                elif self._options == 'full':
+                    ADDRESS = full
                     
                 self._state = ADDRESS
         else:

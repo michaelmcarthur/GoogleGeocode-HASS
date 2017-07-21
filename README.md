@@ -12,6 +12,9 @@ A free API Key allows 2500 requests per day. The sensor will update the address 
 
 Copy the google_geocode.py file and place it in <config_dir>/custom_components/sensor/google_geocode.py.
 
+### Example Screenshot:
+![alt text](https://github.com/michaelmcarthur/GoogleGeocode-HASS/blob/master/Google_Geocode_Screenshot.png "Screenshot")
+
 ### Example entry for configuration.yaml
 ```
 sensor:

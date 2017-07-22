@@ -23,6 +23,13 @@ import homeassistant.helpers.config_validation as cv
 CONF_ORIGIN = 'origin'
 CONF_OPTIONS = 'options'
 
+ATTR_STREET = 'Street'
+ATTR_CITY = 'City'
+ATTR_POSTAL_TOWN = 'Postal Town'
+ATTR_POSTAL_CODE = 'Postal Code'
+ATTR_REGION = 'State'
+ATTR_COUNTRY = 'Country'
+ATTR_FORMATTED_ADDRESS = 'Formatted Address'
 
 DEFAULT_NAME = 'Google Geocode'
 DEFAULT_OPTION = 'street'
@@ -62,7 +69,14 @@ class GoogleGeocode(Entity):
         self._api_key = api_key
         self._state = None
         
-        
+        self._street = None
+        self._city = None
+        self._postal_town = None
+        self._postal_code = None
+        self._city = None
+        self._region = None
+        self._country = None
+        self._formatted_address = None
         
         # self._origin = origin
         # Check if origin is a trackable entity
@@ -82,7 +96,20 @@ class GoogleGeocode(Entity):
     def state(self):
         """Return the state of the sensor."""
         return self._state
-
+        
+    @property
+    def device_state_attributes(self):
+        """Return the state attributes."""
+        return{
+            ATTR_STREET: self._street,
+            ATTR_CITY: self._city,
+            ATTR_POSTAL_TOWN: self._postal_town,
+            ATTR_POSTAL_CODE: self._postal_code,
+            ATTR_REGION: self._region,
+            ATTR_COUNTRY: self._country,
+            ATTR_FORMATTED_ADDRESS: self._formatted_address,
+        }
+        
     @Throttle(SCAN_INTERVAL)
     def update(self):
         """Get the latest data and updates the states."""
@@ -105,13 +132,47 @@ class GoogleGeocode(Entity):
                 lat = self._origin
                 current = lat
                 api = self._api_key
+                street = None
+                city = None
+                postal_town = None
+                city = None
+                state = None
+                country = None
+                self._street = None
+                self._city = None
+                self._postal_town = None
+                self._postal_code = None
+                self._city = None
+                self._region = None
+                self._country = None
+                self._formatted_address = None
                 url2 = "https://maps.googleapis.com/maps/api/geocode/json?latlng=" + lat + "&result_type=street_address" + "&key=" + api
                 response = get(url2)
                 json_input = response.text
                 decoded = json.loads(json_input)
-                street = decoded['results'][0]['address_components'][1]['long_name']
-                city = decoded['results'][0]['address_components'][2]['long_name']
-                full = decoded['results'][0]['formatted_address']
+                for result in decoded["results"]:
+                    for component in result["address_components"]:
+                      if 'route' in component["types"]:
+                          street = component["long_name"]
+                          self._street = street
+                      if 'locality' in component["types"]:
+                          city = component["long_name"]
+                          self._city = city
+                      if 'postal_town' in component["types"]:
+                          postal_town = component["long_name"]
+                          self._postal_town = postal_town
+                      if 'administrative_area_level_1' in component["types"]:
+                          state = component["long_name"]
+                          self._region = state
+                      if 'country' in component["types"]:
+                          country = component["long_name"]
+                          self._country = country
+                      if 'postal_code' in component["types"]:
+                          postal_code = component["long_name"]
+                          self._postal_code = postal_code
+                          
+                formatted_address = decoded['results'][0]['formatted_address']
+                self._formatted_address = formatted_address
                 if self._options == 'street':
                     ADDRESS = street
                 elif self._options == 'city':
@@ -119,9 +180,14 @@ class GoogleGeocode(Entity):
                 elif self._options == 'both':
                     ADDRESS = street + ", " + city
                 elif self._options == 'full':
-                    ADDRESS = full
+                    ADDRESS = formatted_address
+                elif self._options == 'state':
+                    ADDRESS = state
+                elif self._options == 'country':
+                    ADDRESS = country
                     
                 self._state = ADDRESS
+                
         else:
             self._state = zone_check[0].upper() + zone_check[1:]
 

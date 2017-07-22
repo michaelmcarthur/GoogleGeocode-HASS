@@ -14,7 +14,7 @@ import voluptuous as vol
 
 from homeassistant.components.sensor import PLATFORM_SCHEMA
 from homeassistant.const import (
-    CONF_API_KEY, CONF_NAME, ATTR_ATTRIBUTION, ATTR_LATITUDE, ATTR_LONGITUDE)
+    CONF_API_KEY, CONF_NAME, CONF_SCAN_INTERVAL, ATTR_ATTRIBUTION, ATTR_LATITUDE, ATTR_LONGITUDE)
 import homeassistant.helpers.location as location
 from homeassistant.util import Throttle
 from homeassistant.helpers.entity import Entity
@@ -28,13 +28,15 @@ DEFAULT_NAME = 'Google Geocode'
 DEFAULT_OPTION = 'street'
 current = '0,0'
 zone_check = 'a'
-MIN_TIME_BETWEEN_UPDATES = timedelta(minutes=1)
+SCAN_INTERVAL = timedelta(seconds=60)
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
     vol.Required(CONF_API_KEY): cv.string,
     vol.Required(CONF_ORIGIN): cv.string,
     vol.Optional(CONF_OPTIONS, default=DEFAULT_OPTION): cv.string,
     vol.Optional(CONF_NAME, default=DEFAULT_NAME): cv.string,
+    vol.Optional(CONF_SCAN_INTERVAL, default=SCAN_INTERVAL):
+        cv.time_period,
 })
 
 TRACKABLE_DOMAINS = ['device_tracker']
@@ -81,7 +83,7 @@ class GoogleGeocode(Entity):
         """Return the state of the sensor."""
         return self._state
 
-    @Throttle(MIN_TIME_BETWEEN_UPDATES)
+    @Throttle(SCAN_INTERVAL)
     def update(self):
         """Get the latest data and updates the states."""
         
@@ -121,7 +123,7 @@ class GoogleGeocode(Entity):
                     
                 self._state = ADDRESS
         else:
-            self._state = zone_check
+            self._state = zone_check[0].upper() + zone_check[1:]
 
 
     def _get_location_from_entity(self, entity_id):

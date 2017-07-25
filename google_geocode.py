@@ -14,7 +14,7 @@ import voluptuous as vol
 
 from homeassistant.components.sensor import PLATFORM_SCHEMA
 from homeassistant.const import (
-    CONF_API_KEY, CONF_NAME, CONF_SCAN_INTERVAL, ATTR_ATTRIBUTION, ATTR_LATITUDE, ATTR_LONGITUDE)
+    CONF_NAME, CONF_SCAN_INTERVAL, ATTR_ATTRIBUTION, ATTR_LATITUDE, ATTR_LONGITUDE)
 import homeassistant.helpers.location as location
 from homeassistant.util import Throttle
 from homeassistant.helpers.entity import Entity
@@ -38,7 +38,6 @@ zone_check = 'a'
 SCAN_INTERVAL = timedelta(seconds=60)
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
-    vol.Required(CONF_API_KEY): cv.string,
     vol.Required(CONF_ORIGIN): cv.string,
     vol.Optional(CONF_OPTIONS, default=DEFAULT_OPTION): cv.string,
     vol.Optional(CONF_NAME, default=DEFAULT_NAME): cv.string,
@@ -51,22 +50,20 @@ TRACKABLE_DOMAINS = ['device_tracker', 'sensor']
 def setup_platform(hass, config, add_devices, discovery_info=None):
     """Setup the sensor platform."""
     name = config.get(CONF_NAME)
-    api_key = config.get(CONF_API_KEY)
     origin = config.get(CONF_ORIGIN)
     options = config.get(CONF_OPTIONS)
 
-    add_devices([GoogleGeocode(hass, origin, name, api_key, options)])
+    add_devices([GoogleGeocode(hass, origin, name, options)])
     
 
 class GoogleGeocode(Entity):
     """Representation of a Google Geocode Sensor."""
 
-    def __init__(self, hass, origin, name, api_key, options):
+    def __init__(self, hass, origin, name, options):
         """Initialize the sensor."""
         self._hass = hass
         self._name = name
         self._options = options.lower()
-        self._api_key = api_key
         self._state = "Awaiting Update"
         
         self._street = None
@@ -131,10 +128,7 @@ class GoogleGeocode(Entity):
             else:
                 lat = self._origin
                 current = lat
-                api = self._api_key
                 self._reset_attributes()
-
-                # url = "https://maps.googleapis.com/maps/api/geocode/json?latlng=" + lat + "&result_type=street_address" + "&key=" + api
                 url = "https://maps.google.com/maps/api/geocode/json?latlng=" + lat
                 response = get(url)
                 json_input = response.text

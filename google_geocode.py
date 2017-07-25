@@ -134,6 +134,7 @@ class GoogleGeocode(Entity):
                 json_input = response.text
                 decoded = json.loads(json_input)
                 street = 'Unnamed Road'
+                alt_street = 'Unnamed Road'
                 city = ''
                 postal_town = ''
                 # formatted_address = ''
@@ -141,12 +142,11 @@ class GoogleGeocode(Entity):
                 country = ''
                 for result in decoded["results"]:
                     for component in result["address_components"]:
-                      if 'sublocality_level_1' in component["types"]:
-                          street = component["long_name"]
-                          self._street = street
                       if 'route' in component["types"]:
                           street = component["long_name"]
                           self._street = street
+                      if 'sublocality_level_1' in component["types"]:
+                          alt_street = component["long_name"]
                       if 'postal_town' in component["types"]:
                           postal_town = component["long_name"]
                           self._postal_town = postal_town
@@ -154,6 +154,10 @@ class GoogleGeocode(Entity):
                       if 'locality' in component["types"]:
                           city = component["long_name"]
                           self._city = city
+                      # else: 
+                        # if 'sublocality_level_1' in component["types"]:
+                            # city = component["long_name"]
+                            # self._city = city
                       if 'administrative_area_level_1' in component["types"]:
                           state = component["long_name"]
                           self._region = state
@@ -163,14 +167,24 @@ class GoogleGeocode(Entity):
                       if 'postal_code' in component["types"]:
                           postal_code = component["long_name"]
                           self._postal_code = postal_code
-
                     
                 if self._options == 'street':
-                    ADDRESS = street
+                    if street == 'Unnamed Road':
+                        street = alt_street
+                        ADDRESS = street
+                        self._street = street
+                    else:
+                        ADDRESS = street
                 elif self._options == 'city':
                     ADDRESS = city
                 elif self._options == 'both':
-                    ADDRESS = street + ", " + city
+                    if street == 'Unnamed Road':
+                        street = alt_street
+                        self._street = street
+                        ADDRESS = street + ", " + city
+                    else:
+                        ADDRESS = street + ", " + city
+                    
                 # elif self._options == 'full':
                     # ADDRESS = formatted_address
                 elif self._options == 'state':

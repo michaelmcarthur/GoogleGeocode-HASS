@@ -19,9 +19,11 @@ import homeassistant.helpers.location as location
 from homeassistant.util import Throttle
 from homeassistant.helpers.entity import Entity
 import homeassistant.helpers.config_validation as cv
+# from homeassistant.components import weblink
 
 CONF_ORIGIN = 'origin'
 CONF_OPTIONS = 'options'
+CONF_ATTRIBUTION = "Data provided by maps.google.com"
 
 ATTR_STREET = 'Street'
 ATTR_CITY = 'City'
@@ -104,6 +106,7 @@ class GoogleGeocode(Entity):
             ATTR_POSTAL_CODE: self._postal_code,
             ATTR_REGION: self._region,
             ATTR_COUNTRY: self._country,
+            ATTR_ATTRIBUTION: CONF_ATTRIBUTION,
             # ATTR_FORMATTED_ADDRESS: self._formatted_address,
         }
         
@@ -124,6 +127,8 @@ class GoogleGeocode(Entity):
         
         if zone_check == 'not_home':
             if current == self._origin:
+                pass
+            elif self._origin == None:
                 pass
             else:
                 lat = self._origin

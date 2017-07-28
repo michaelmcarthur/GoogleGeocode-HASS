@@ -22,14 +22,16 @@ import homeassistant.helpers.config_validation as cv
 
 CONF_ORIGIN = 'origin'
 CONF_OPTIONS = 'options'
+CONF_ATTRIBUTION = "Data provided by maps.google.com"
 
+ATTR_STREET_NUMBER = 'Street Number'
 ATTR_STREET = 'Street'
 ATTR_CITY = 'City'
 ATTR_POSTAL_TOWN = 'Postal Town'
 ATTR_POSTAL_CODE = 'Postal Code'
 ATTR_REGION = 'State'
 ATTR_COUNTRY = 'Country'
-# ATTR_FORMATTED_ADDRESS = 'Formatted Address'
+ATTR_FORMATTED_ADDRESS = 'Formatted Address'
 
 DEFAULT_NAME = 'Google Geocode'
 DEFAULT_OPTION = 'street'
@@ -66,6 +68,7 @@ class GoogleGeocode(Entity):
         self._options = options.lower()
         self._state = "Awaiting Update"
         
+        self._street_number = None
         self._street = None
         self._city = None
         self._postal_town = None
@@ -73,7 +76,8 @@ class GoogleGeocode(Entity):
         self._city = None
         self._region = None
         self._country = None
-        # self._formatted_address = None
+        self._county = None
+        self._formatted_address = None
         
         # self._origin = origin
         # Check if origin is a trackable entity
@@ -98,13 +102,16 @@ class GoogleGeocode(Entity):
     def device_state_attributes(self):
         """Return the state attributes."""
         return{
+            ATTR_STREET_NUMBER: self._street_number,
             ATTR_STREET: self._street,
             ATTR_CITY: self._city,
             ATTR_POSTAL_TOWN: self._postal_town,
             ATTR_POSTAL_CODE: self._postal_code,
             ATTR_REGION: self._region,
             ATTR_COUNTRY: self._country,
-            # ATTR_FORMATTED_ADDRESS: self._formatted_address,
+            ATTR_COUNTRY: self._county,
+            ATTR_ATTRIBUTION: CONF_ATTRIBUTION,
+            ATTR_FORMATTED_ADDRESS: self._formatted_address,
         }
         
     @Throttle(SCAN_INTERVAL)
@@ -125,6 +132,8 @@ class GoogleGeocode(Entity):
         if zone_check == 'not_home':
             if current == self._origin:
                 pass
+            elif self._origin == None:
+                pass
             else:
                 lat = self._origin
                 current = lat
@@ -133,46 +142,63 @@ class GoogleGeocode(Entity):
                 response = get(url)
                 json_input = response.text
                 decoded = json.loads(json_input)
+                street_number = ''
                 street = 'Unnamed Road'
+                alt_street = 'Unnamed Road'
                 city = ''
                 postal_town = ''
-                # formatted_address = ''
+                formatted_address = ''
                 state = ''
+                county = ''
                 country = ''
+                
                 for result in decoded["results"]:
                     for component in result["address_components"]:
-                      if 'sublocality_level_1' in component["types"]:
-                          street = component["long_name"]
-                          self._street = street
+                      if 'street_number' in component["types"]:
+                          street_number = component["long_name"]
+                          self._street_number = street_number
                       if 'route' in component["types"]:
                           street = component["long_name"]
                           self._street = street
+                      if 'sublocality_level_1' in component["types"]:
+                          alt_street = component["long_name"]
                       if 'postal_town' in component["types"]:
                           postal_town = component["long_name"]
                           self._postal_town = postal_town
-                          city = postal_town
                       if 'locality' in component["types"]:
                           city = component["long_name"]
                           self._city = city
                       if 'administrative_area_level_1' in component["types"]:
                           state = component["long_name"]
                           self._region = state
+                      if 'administrative_area_level_2' in component["types"]:
+                          county = component["long_name"]
+                          self._county = county
                       if 'country' in component["types"]:
                           country = component["long_name"]
                           self._country = country
                       if 'postal_code' in component["types"]:
                           postal_code = component["long_name"]
                           self._postal_code = postal_code
-
+                if 'formatted_address' in decoded['results'][0]:
+                    formatted_address = decoded['results'][0]['formatted_address']
+                    self._formatted_address = formatted_address
                     
+                if street == 'Unnamed Road':
+                    street = alt_street
+                if city == '':
+                    city = postal_town
+                    if city == '':
+                        city = county
+                        
                 if self._options == 'street':
                     ADDRESS = street
                 elif self._options == 'city':
                     ADDRESS = city
                 elif self._options == 'both':
-                    ADDRESS = street + ", " + city
-                # elif self._options == 'full':
-                    # ADDRESS = formatted_address
+                    ADDRESS = street + ' , ' + city
+                elif self._options == 'full':
+                    ADDRESS = formatted_address
                 elif self._options == 'state':
                     ADDRESS = state
                 elif self._options == 'country':
@@ -203,13 +229,15 @@ class GoogleGeocode(Entity):
         
     def _reset_attributes(self):
         self._street = None
+        self._street_number = None
         self._city = None
         self._postal_town = None
         self._postal_code = None
         self._city = None
         self._region = None
         self._country = None
-        # self._formatted_address = None
+        self._county = None
+        self._formatted_address = None
     
     @staticmethod
     def _get_location_from_attributes(entity):

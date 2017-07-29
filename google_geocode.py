@@ -190,7 +190,7 @@ class GoogleGeocode(Entity):
                 formatted_address = decoded['results'][0]['formatted_address']
                 self._formatted_address = formatted_address
                     
-            if self._display_zone == 'hide':
+            if self._display_zone == 'hide' or zone_check == "not_home":
                 if street == 'Unnamed Road':
                     street = alt_street
                     self._street = alt_street

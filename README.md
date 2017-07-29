@@ -26,12 +26,15 @@ origin (Required): Tracking can be setup to track entity type device_tracker. Th
 
 name (Optional): A name to display on the sensor. The default is “Google Geocode"
 
-options (Optional): Select what level of address information you want. Choices are 'street', 'city', 'both', 'state' or 'country'. The default is “street"
+options (Optional): Select what level of address information you want. Choices are 'street', 'city', 'both', 'state', 'full' or 'country'. The default is “both"
+
+display_zone (Optional): Chouse to display a zone when in a zone. Choices are 'show' or 'hide'. The default is “show"
 
 ### Example with optional entry for configuration.yaml
 ```
 - platform: google_geocode
   name: michael
   origin: device_tracker.mobile_phone
-  options: both
+  options: full
+  display_zone: hide
 ```

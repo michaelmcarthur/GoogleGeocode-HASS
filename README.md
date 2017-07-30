@@ -26,7 +26,7 @@ origin (Required): Tracking can be setup to track entity type device_tracker. Th
 
 name (Optional): A name to display on the sensor. The default is “Google Geocode"
 
-options (Optional): Select what level of address information you want. Choices are 'street_number', 'street', 'city', 'county', 'state', 'postal_code', 'country' or 'formatted_address'. You can use any combination of these options, sepirate the options with a comma. The default is “street, city"
+options (Optional): Select what level of address information you want. Choices are 'street_number', 'street', 'city', 'county', 'state', 'postal_code', 'country' or 'formatted_address'. You can use any combination of these options, separate each option with a comma. The default is “street, city"
 
 display_zone (Optional): Chouse to display a zone when in a zone. Choices are 'show' or 'hide'. The default is “show"
 

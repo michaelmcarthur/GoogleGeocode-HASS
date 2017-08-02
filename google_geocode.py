@@ -145,11 +145,10 @@ class GoogleGeocode(Entity):
             lat = self._origin
             current = lat
             self._reset_attributes()
-            url = "https://maps.google.com/maps/api/geocode/json?latlng=" + lat
             if self._api_key == 'no key':
-                pass
+                url = "https://maps.google.com/maps/api/geocode/json?latlng=" + lat
             else:
-                url = url + "&key=" + self._api_key
+                url = "https://maps.googleapis.com/maps/api/geocode/json?latlng=" + lat + "&key=" + self._api_key
             response = get(url)
             json_input = response.text
             decoded = json.loads(json_input)

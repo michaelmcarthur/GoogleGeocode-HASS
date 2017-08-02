@@ -6,6 +6,7 @@ https://github.com/michaelmcarthur/GoogleGeocode-HASS
 """
 from datetime import datetime
 from datetime import timedelta 
+import logging
 import json
 import requests
 from requests import get
@@ -19,6 +20,8 @@ import homeassistant.helpers.location as location
 from homeassistant.util import Throttle
 from homeassistant.helpers.entity import Entity
 import homeassistant.helpers.config_validation as cv
+
+_LOGGER = logging.getLogger(__name__)
 
 CONF_ORIGIN = 'origin'
 CONF_OPTIONS = 'options'
@@ -88,6 +91,7 @@ class GoogleGeocode(Entity):
         self._country = None
         self._county = None
         self._formatted_address = None
+        self._zone_check_current = None
 
         # Check if origin is a trackable entity
         if origin.split('.', 1)[0] in TRACKABLE_DOMAINS:
@@ -133,15 +137,26 @@ class GoogleGeocode(Entity):
         """Update if location has changed."""
 
         global current
+        global zone_check_count
         global zone_check
         global user_display
         zone_check = self.hass.states.get(self._origin_entity_id).state
+        zone_check_count = 2
 
-        if current == self._origin:
+        if zone_check == self._zone_check_current:
+            zone_check_count = 1
+        if zone_check == 'not_home':
+            zone_check_count = 2
+        if zone_check_count == 1:
             pass
         elif self._origin == None:
             pass
+        elif current == self._origin:
+            pass
         else:
+            _LOGGER.info("google request sent")
+            self._zone_check_current = self.hass.states.get(self._origin_entity_id).state
+            zone_check_count = 2
             lat = self._origin
             current = lat
             self._reset_attributes()
@@ -161,7 +176,7 @@ class GoogleGeocode(Entity):
             state = ''
             county = ''
             country = ''
-
+            
             for result in decoded["results"]:
                 for component in result["address_components"]:
                     if 'street_number' in component["types"]:
@@ -194,8 +209,11 @@ class GoogleGeocode(Entity):
             if 'formatted_address' in decoded['results'][0]:
                 formatted_address = decoded['results'][0]['formatted_address']
                 self._formatted_address = formatted_address
-
-            if self._display_zone == 'hide' or zone_check == "not_home":
+                
+            if 'error_message' in decoded:
+                self._state = decoded['error_message']
+                _LOGGER.error("You have exceded your daily requests plase create an api key.")
+            elif self._display_zone == 'hide' or zone_check == "not_home":
                 if street == 'Unnamed Road':
                     street = alt_street
                     self._street = alt_street

@@ -6,6 +6,7 @@ https://github.com/michaelmcarthur/GoogleGeocode-HASS
 """
 from datetime import datetime
 from datetime import timedelta 
+import logging
 import json
 import requests
 from requests import get
@@ -14,11 +15,13 @@ import voluptuous as vol
 
 from homeassistant.components.sensor import PLATFORM_SCHEMA
 from homeassistant.const import (
-    CONF_NAME, CONF_SCAN_INTERVAL, ATTR_ATTRIBUTION, ATTR_LATITUDE, ATTR_LONGITUDE)
+    CONF_API_KEY, CONF_NAME, CONF_SCAN_INTERVAL, ATTR_ATTRIBUTION, ATTR_LATITUDE, ATTR_LONGITUDE)
 import homeassistant.helpers.location as location
 from homeassistant.util import Throttle
 from homeassistant.helpers.entity import Entity
 import homeassistant.helpers.config_validation as cv
+
+_LOGGER = logging.getLogger(__name__)
 
 CONF_ORIGIN = 'origin'
 CONF_OPTIONS = 'options'
@@ -38,12 +41,14 @@ ATTR_FORMATTED_ADDRESS = 'Formatted Address'
 DEFAULT_NAME = 'Google Geocode'
 DEFAULT_OPTION = 'street, city'
 DEFAULT_DISPLAY_ZONE = 'display'
+DEFAULT_KEY = 'no key'
 current = '0,0'
 zone_check = 'a'
 SCAN_INTERVAL = timedelta(seconds=60)
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
     vol.Required(CONF_ORIGIN): cv.string,
+    vol.Optional(CONF_API_KEY, default=DEFAULT_KEY): cv.string,
     vol.Optional(CONF_OPTIONS, default=DEFAULT_OPTION): cv.string,
     vol.Optional(CONF_DISPLAY_ZONE, default=DEFAULT_DISPLAY_ZONE): cv.string,
     vol.Optional(CONF_NAME, default=DEFAULT_NAME): cv.string,
@@ -56,20 +61,22 @@ TRACKABLE_DOMAINS = ['device_tracker', 'sensor']
 def setup_platform(hass, config, add_devices, discovery_info=None):
     """Setup the sensor platform."""
     name = config.get(CONF_NAME)
+    api_key = config.get(CONF_API_KEY)
     origin = config.get(CONF_ORIGIN)
     options = config.get(CONF_OPTIONS)
     display_zone = config.get(CONF_DISPLAY_ZONE)
 
-    add_devices([GoogleGeocode(hass, origin, name, options, display_zone)])
+    add_devices([GoogleGeocode(hass, origin, name, api_key, options, display_zone)])
 
 
 class GoogleGeocode(Entity):
     """Representation of a Google Geocode Sensor."""
 
-    def __init__(self, hass, origin, name, options, display_zone):
+    def __init__(self, hass, origin, name, api_key, options, display_zone):
         """Initialize the sensor."""
         self._hass = hass
         self._name = name
+        self._api_key = api_key
         self._options = options.lower()
         self._display_zone = display_zone.lower()
         self._state = "Awaiting Update"
@@ -84,6 +91,7 @@ class GoogleGeocode(Entity):
         self._country = None
         self._county = None
         self._formatted_address = None
+        self._zone_check_current = None
 
         # Check if origin is a trackable entity
         if origin.split('.', 1)[0] in TRACKABLE_DOMAINS:
@@ -129,19 +137,33 @@ class GoogleGeocode(Entity):
         """Update if location has changed."""
 
         global current
+        global zone_check_count
         global zone_check
         global user_display
         zone_check = self.hass.states.get(self._origin_entity_id).state
+        zone_check_count = 2
 
-        if current == self._origin:
+        if zone_check == self._zone_check_current:
+            zone_check_count = 1
+        if zone_check == 'not_home':
+            zone_check_count = 2
+        if zone_check_count == 1:
             pass
         elif self._origin == None:
             pass
+        elif current == self._origin:
+            pass
         else:
+            _LOGGER.info("google request sent")
+            self._zone_check_current = self.hass.states.get(self._origin_entity_id).state
+            zone_check_count = 2
             lat = self._origin
             current = lat
             self._reset_attributes()
-            url = "https://maps.google.com/maps/api/geocode/json?latlng=" + lat
+            if self._api_key == 'no key':
+                url = "https://maps.google.com/maps/api/geocode/json?latlng=" + lat
+            else:
+                url = "https://maps.googleapis.com/maps/api/geocode/json?latlng=" + lat + "&key=" + self._api_key
             response = get(url)
             json_input = response.text
             decoded = json.loads(json_input)
@@ -155,6 +177,8 @@ class GoogleGeocode(Entity):
             county = ''
             country = ''
 
+
+            
             for result in decoded["results"]:
                 for component in result["address_components"]:
                     if 'street_number' in component["types"]:
@@ -184,11 +208,17 @@ class GoogleGeocode(Entity):
                         postal_code = component["long_name"]
                         self._postal_code = postal_code
 
-            if 'formatted_address' in decoded['results'][0]:
-                formatted_address = decoded['results'][0]['formatted_address']
-                self._formatted_address = formatted_address
+            try:
+                if 'formatted_address' in decoded['results'][0]:
+                    formatted_address = decoded['results'][0]['formatted_address']
+                    self._formatted_address = formatted_address
+            except IndexError:
+                pass
 
-            if self._display_zone == 'hide' or zone_check == "not_home":
+            if 'error_message' in decoded:
+                self._state = decoded['error_message']
+                _LOGGER.error("You have exceeded your daily requests or entered a incorrect key please create or check the api key.")
+            elif self._display_zone == 'hide' or zone_check == "not_home":
                 if street == 'Unnamed Road':
                     street = alt_street
                     self._street = alt_street

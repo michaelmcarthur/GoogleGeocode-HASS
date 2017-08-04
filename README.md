@@ -30,6 +30,11 @@ options (Optional): Select what level of address information you want. Choices a
 
 display_zone (Optional): Choose to display a zone when in a zone. Choices are 'show' or 'hide'. The default is “show"
 
+
+api_key (Optional): Your application’s API key (get one by following the instructions below). This key identifies your application for purposes of quota management. Most users will not need to use this unless multiple sensors are created.
+
+You need to register for an API key if you recieve a `OVER_QUERY_LIMIT` error. This can be done by following the instructions [here](https://github.com/googlemaps/google-maps-services-python#api-keys). You only need to turn on the Geocoding API. A free API Key allows 2500 requests per day. 
+
 ### Example with optional entry for configuration.yaml
 ```
 - platform: google_geocode
@@ -37,4 +42,5 @@ display_zone (Optional): Choose to display a zone when in a zone. Choices are 's
   origin: device_tracker.mobile_phone
   options: street_number, street, city
   display_zone: hide
+  api_key: XXXX_XXXXX_XXXXX
 ```

@@ -27,6 +27,7 @@ CONF_ORIGIN = 'origin'
 CONF_OPTIONS = 'options'
 CONF_DISPLAY_ZONE = 'display_zone'
 CONF_ATTRIBUTION = "Data provided by maps.google.com"
+CONF_GRAVATAR = 'gravatar'
 
 ATTR_STREET_NUMBER = 'Street Number'
 ATTR_STREET = 'Street'
@@ -51,6 +52,7 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
     vol.Optional(CONF_API_KEY, default=DEFAULT_KEY): cv.string,
     vol.Optional(CONF_OPTIONS, default=DEFAULT_OPTION): cv.string,
     vol.Optional(CONF_DISPLAY_ZONE, default=DEFAULT_DISPLAY_ZONE): cv.string,
+    vol.Optional(CONF_GRAVATAR, default=None): vol.Any(None, cv.string),
     vol.Optional(CONF_NAME, default=DEFAULT_NAME): cv.string,
     vol.Optional(CONF_SCAN_INTERVAL, default=SCAN_INTERVAL):
         cv.time_period,
@@ -65,14 +67,15 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
     origin = config.get(CONF_ORIGIN)
     options = config.get(CONF_OPTIONS)
     display_zone = config.get(CONF_DISPLAY_ZONE)
+    gravatar = config.get(CONF_GRAVATAR) 
 
-    add_devices([GoogleGeocode(hass, origin, name, api_key, options, display_zone)])
+    add_devices([GoogleGeocode(hass, origin, name, api_key, options, display_zone, gravatar)])
 
 
 class GoogleGeocode(Entity):
     """Representation of a Google Geocode Sensor."""
 
-    def __init__(self, hass, origin, name, api_key, options, display_zone):
+    def __init__(self, hass, origin, name, api_key, options, display_zone, gravatar):
         """Initialize the sensor."""
         self._hass = hass
         self._name = name
@@ -80,6 +83,7 @@ class GoogleGeocode(Entity):
         self._options = options.lower()
         self._display_zone = display_zone.lower()
         self._state = "Awaiting Update"
+        self._gravatar = gravatar
 
         self._street_number = None
         self._street = None
@@ -99,6 +103,11 @@ class GoogleGeocode(Entity):
         else:
             self._origin = origin
 
+        if gravatar is not None:
+            self._picture = self._get_gravatar_for_email(gravatar)
+        else:
+            self._picture = None
+
     @property
     def name(self):
         """Return the name of the sensor."""
@@ -109,6 +118,11 @@ class GoogleGeocode(Entity):
         """Return the state of the sensor."""
         return self._state
 
+    @property
+    def entity_picture(self):
+        """Return the picture of the device."""
+        return self._picture
+        
     @property
     def device_state_attributes(self):
         """Return the state attributes."""
@@ -294,3 +308,11 @@ class GoogleGeocode(Entity):
         """Get the lat/long string from an entities attributes."""
         attr = entity.attributes
         return "%s,%s" % (attr.get(ATTR_LATITUDE), attr.get(ATTR_LONGITUDE))
+        
+    def _get_gravatar_for_email(self, email: str):
+        """Return an 80px Gravatar for the given email address.
+        Async friendly.
+        """
+        import hashlib
+        url = 'https://www.gravatar.com/avatar/{}.jpg?s=80&d=wavatar'
+        return url.format(hashlib.md5(email.encode('utf-8').lower()).hexdigest())

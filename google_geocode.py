@@ -4,6 +4,7 @@ Support for Google Geocode sensors.
 For more details about this platform, please refer to the documentation at
 https://github.com/michaelmcarthur/GoogleGeocode-HASS
 """
+
 from datetime import datetime
 from datetime import timedelta 
 import logging
@@ -27,6 +28,9 @@ CONF_ORIGIN = 'origin'
 CONF_OPTIONS = 'options'
 CONF_DISPLAY_ZONE = 'display_zone'
 CONF_ATTRIBUTION = "Data provided by maps.google.com"
+CONF_GRAVATAR = 'gravatar'
+CONF_RANGE = 'range'
+CONF_UNITS = 'units'
 
 ATTR_STREET_NUMBER = 'Street Number'
 ATTR_STREET = 'Street'
@@ -37,6 +41,7 @@ ATTR_REGION = 'State'
 ATTR_COUNTRY = 'Country'
 ATTR_COUNTY = 'County'
 ATTR_FORMATTED_ADDRESS = 'Formatted Address'
+ATTR_NEARBY = "Nearby"
 
 DEFAULT_NAME = 'Google Geocode'
 DEFAULT_OPTION = 'street, city'
@@ -45,13 +50,18 @@ DEFAULT_KEY = 'no key'
 current = '0,0'
 zone_check = 'a'
 SCAN_INTERVAL = timedelta(seconds=60)
+DEFAULT_RANGE = '5000'
+DEFAULT_UNITS = "imperial"
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
     vol.Required(CONF_ORIGIN): cv.string,
     vol.Optional(CONF_API_KEY, default=DEFAULT_KEY): cv.string,
     vol.Optional(CONF_OPTIONS, default=DEFAULT_OPTION): cv.string,
     vol.Optional(CONF_DISPLAY_ZONE, default=DEFAULT_DISPLAY_ZONE): cv.string,
+    vol.Optional(CONF_GRAVATAR, default=None): vol.Any(None, cv.string),
     vol.Optional(CONF_NAME, default=DEFAULT_NAME): cv.string,
+    vol.Optional(CONF_RANGE, default=DEFAULT_RANGE): cv.string,
+    vol.Optional(CONF_UNITS, default=DEFAULT_UNITS): cv.string,
     vol.Optional(CONF_SCAN_INTERVAL, default=SCAN_INTERVAL):
         cv.time_period,
 })
@@ -65,14 +75,17 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
     origin = config.get(CONF_ORIGIN)
     options = config.get(CONF_OPTIONS)
     display_zone = config.get(CONF_DISPLAY_ZONE)
+    gravatar = config.get(CONF_GRAVATAR) 
+    range = config.get(CONF_RANGE)
+    units = config.get(CONF_UNITS)
 
-    add_devices([GoogleGeocode(hass, origin, name, api_key, options, display_zone)])
+    add_devices([GoogleGeocode(hass, origin, name, api_key, options, display_zone, gravatar, range, units)])
 
 
 class GoogleGeocode(Entity):
     """Representation of a Google Geocode Sensor."""
 
-    def __init__(self, hass, origin, name, api_key, options, display_zone):
+    def __init__(self, hass, origin, name, api_key, options, display_zone, gravatar, range, units):
         """Initialize the sensor."""
         self._hass = hass
         self._name = name
@@ -80,6 +93,9 @@ class GoogleGeocode(Entity):
         self._options = options.lower()
         self._display_zone = display_zone.lower()
         self._state = "Awaiting Update"
+        self._gravatar = gravatar
+        self._range = range
+        self._units = units
 
         self._street_number = None
         self._street = None
@@ -92,12 +108,18 @@ class GoogleGeocode(Entity):
         self._county = None
         self._formatted_address = None
         self._zone_check_current = None
+        self._nearby = None
 
         # Check if origin is a trackable entity
         if origin.split('.', 1)[0] in TRACKABLE_DOMAINS:
             self._origin_entity_id = origin
         else:
             self._origin = origin
+
+        if gravatar is not None:
+            self._picture = self._get_gravatar_for_email(gravatar)
+        else:
+            self._picture = None
 
     @property
     def name(self):
@@ -109,6 +131,11 @@ class GoogleGeocode(Entity):
         """Return the state of the sensor."""
         return self._state
 
+    @property
+    def entity_picture(self):
+        """Return the picture of the device."""
+        return self._picture
+        
     @property
     def device_state_attributes(self):
         """Return the state attributes."""
@@ -123,6 +150,7 @@ class GoogleGeocode(Entity):
             ATTR_COUNTY: self._county,
             ATTR_ATTRIBUTION: CONF_ATTRIBUTION,
             ATTR_FORMATTED_ADDRESS: self._formatted_address,
+            ATTR_NEARBY: self._nearby
         }
 
     @Throttle(SCAN_INTERVAL)
@@ -205,14 +233,52 @@ class GoogleGeocode(Entity):
                     if 'postal_code' in component["types"]:
                         postal_code = component["long_name"]
                         self._postal_code = postal_code
-
-            if 'formatted_address' in decoded['results'][0]:
-                formatted_address = decoded['results'][0]['formatted_address']
-                self._formatted_address = formatted_address
+                        
+            if self._api_key == 'no key':
+                p_url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=" + lat + "&radius="+ self._range
+            else:
+                p_url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=" + lat + "&radius="+ self._range + "&key=" + self._api_key
+            p_response = get(p_url)
+            p_json_input = p_response.text
+            p_decoded = json.loads(p_json_input)
+            nearby = ''
+            
+            if 'ZERO_RESULTS' in p_decoded:
+                nearby = ''
+            else:
+                for p_results in p_decoded["results"]:
+                    if "establishment" in p_results["types"]: 
+                        nearby_name = p_results["name"]
+                        nearby_lat = p_results['geometry']['location']['lat']
+                        nearby_lng = p_results['geometry']['location']['lng']
+                        nearby_dest = str(nearby_lat) + "," + str(nearby_lng)
+                        
+                        if self._api_key == 'no key':
+                            d_url = "https://maps.googleapis.com/maps/api/distancematrix/json?units=" + self._units + "&origins=" + lat + "&destinations=" + nearby_dest
+                        else:
+                            d_url = "https://maps.googleapis.com/maps/api/distancematrix/json?units=" + self._units + "&origins=" + lat + "&destinations=" + nearby_dest + "&key=" + self._api_key
+                        d_response = get(d_url)
+                        d_json_input = d_response.text
+                        d_decoded = json.loads(d_json_input)
+                        
+                        for d_results in d_decoded["rows"]:
+                            for distance in d_results["elements"]:
+                                nearby_distance = distance["distance"]["text"]
                 
+                        nearby = nearby_distance + " from " + nearby_name
+            
+            self._nearby = nearby
+
+            try:
+                if 'formatted_address' in decoded['results'][0]:
+                    formatted_address = decoded['results'][0]['formatted_address']
+                    self._formatted_address = formatted_address
+            except IndexError:
+                pass
+
             if 'error_message' in decoded:
                 self._state = decoded['error_message']
-                _LOGGER.error("You have exceded your daily requests plase create an api key.")
+                _LOGGER.error("You have exceeded your daily requests or entered a incorrect key please create or check the api key.")
             elif self._display_zone == 'hide' or zone_check == "not_home":
                 if street == 'Unnamed Road':
                     street = alt_street
@@ -241,6 +307,8 @@ class GoogleGeocode(Entity):
                     self._append_to_user_display(country)
                 if "formatted_address" in display_options:
                     self._append_to_user_display(formatted_address)
+                if "nearby" in display_options:
+                    self._append_to_user_display(nearby)
                         
                 user_display = ', '.join(  x for x in user_display )
                 
@@ -276,6 +344,7 @@ class GoogleGeocode(Entity):
         self._country = None
         self._county = None
         self._formatted_address = None
+        self._nearby = None
 
     def _append_to_user_display(self, append_check):
         """Appends attribute to state if false."""
@@ -289,3 +358,11 @@ class GoogleGeocode(Entity):
         """Get the lat/long string from an entities attributes."""
         attr = entity.attributes
         return "%s,%s" % (attr.get(ATTR_LATITUDE), attr.get(ATTR_LONGITUDE))
+        
+    def _get_gravatar_for_email(self, email: str):
+        """Return an 80px Gravatar for the given email address.
+        Async friendly.
+        """
+        import hashlib
+        url = 'https://www.gravatar.com/avatar/{}.jpg?s=80&d=wavatar'
+        return url.format(hashlib.md5(email.encode('utf-8').lower()).hexdigest())

@@ -34,7 +34,18 @@ gravatar (Optional): An email address for the device’s owner. You can set up a
 
 api_key (Optional): Your application’s API key (get one by following the instructions below). This key identifies your application for purposes of quota management. Most users will not need to use this unless multiple sensors are created.
 
-You need to register for an API key if you recieve a `OVER_QUERY_LIMIT` error. This can be done by following the instructions [here](https://github.com/googlemaps/google-maps-services-python#api-keys). You only need to turn on the Geocoding API. A free API Key allows 2500 requests per day. 
+You need to register for an API key to use Google Geocode. This can be done by following these instructions
+* Go to [Google Maps Platform API](https://cloud.google.com/maps-platform/#get-started)
+* Click on 'Get Started'
+* Select 'Maps' and 'Places' then click 'continue'
+* Create a new project or select an existing one then click 'next'.
+* Clcik 'Create Billing Account'
+* Create a name for the account then click 'Continue'
+* Confirm your Country then click 'Confirm'
+* Fill in your detail the click 'Submit and enable billing'
+* To Emable your API's Click 'Next'
+* Copy your API key.
+
 
 ### Example with optional entry for configuration.yaml
 ```

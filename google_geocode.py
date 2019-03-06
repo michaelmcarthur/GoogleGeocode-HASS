@@ -58,7 +58,7 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
         cv.time_period,
 })
 
-TRACKABLE_DOMAINS = ['device_tracker', 'sensor']
+TRACKABLE_DOMAINS = ['device_tracker', 'sensor', 'person']
 
 def setup_platform(hass, config, add_devices, discovery_info=None):
     """Setup the sensor platform."""

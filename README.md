@@ -10,7 +10,7 @@ The sensor will update the address each time the device tracker location changes
 
 Copy the manifest.json file and place it in <config_dir>/custom_components/google_geocode/manifest.json
 
-Copy the google_geocode.py file and place it in <config_dir>/custom_components/google_geocode/sensor.py
+Copy the sensor.py file and place it in <config_dir>/custom_components/google_geocode/sensor.py
 
 ### Example Screenshot:
 ![alt text](https://github.com/michaelmcarthur/GoogleGeocode-HASS/blob/master/Google_Geocode_Screenshot.png "Screenshot")

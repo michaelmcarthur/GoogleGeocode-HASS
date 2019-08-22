@@ -254,6 +254,8 @@ class GoogleGeocode(Entity):
                     self._append_to_user_display(county)
                 if "state" in display_options:
                     self._append_to_user_display(state)
+                if "postal_town" in display_options:
+                    self._append_to_user_display(postal_town)
                 if "postal_code" in display_options:
                     self._append_to_user_display(postal_code)
                 if "country" in display_options:

@@ -34,6 +34,8 @@ display_zone (Optional): Choose to display a zone when in a zone. Choices are 's
 
 gravatar (Optional): An email address for the device’s owner. You can set up a Gravatar [here.](https://gravatar.com) If provided, it will override `picture` The default is 'none'
 
+image (Optional): A link to an image which if provided, will override `picture` The default is 'none'
+
 api_key (Optional): Your application’s API key (get one by following the instructions below). This key identifies your application for purposes of quota management. Most users will not need to use this unless multiple sensors are created.
 
 You need to register for an API key to use Google Geocode. This can be done by following these instructions

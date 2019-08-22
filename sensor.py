@@ -1,6 +1,5 @@
 """
 Support for Google Geocode sensors.
-
 For more details about this platform, please refer to the documentation at
 https://github.com/michaelmcarthur/GoogleGeocode-HASS
 """
@@ -28,6 +27,7 @@ CONF_OPTIONS = 'options'
 CONF_DISPLAY_ZONE = 'display_zone'
 CONF_ATTRIBUTION = "Data provided by maps.google.com"
 CONF_GRAVATAR = 'gravatar'
+CONF_IMAGE = 'image'
 
 ATTR_STREET_NUMBER = 'Street Number'
 ATTR_STREET = 'Street'
@@ -53,6 +53,7 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
     vol.Optional(CONF_OPTIONS, default=DEFAULT_OPTION): cv.string,
     vol.Optional(CONF_DISPLAY_ZONE, default=DEFAULT_DISPLAY_ZONE): cv.string,
     vol.Optional(CONF_GRAVATAR, default=None): vol.Any(None, cv.string),
+    vol.Optional(CONF_IMAGE, default=None): vol.Any(None, cv.string),
     vol.Optional(CONF_NAME, default=DEFAULT_NAME): cv.string,
     vol.Optional(CONF_SCAN_INTERVAL, default=SCAN_INTERVAL):
         cv.time_period,
@@ -68,14 +69,15 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
     options = config.get(CONF_OPTIONS)
     display_zone = config.get(CONF_DISPLAY_ZONE)
     gravatar = config.get(CONF_GRAVATAR) 
+    image = config.get(CONF_IMAGE) 
 
-    add_devices([GoogleGeocode(hass, origin, name, api_key, options, display_zone, gravatar)])
+    add_devices([GoogleGeocode(hass, origin, name, api_key, options, display_zone, gravatar, image)])
 
 
 class GoogleGeocode(Entity):
     """Representation of a Google Geocode Sensor."""
 
-    def __init__(self, hass, origin, name, api_key, options, display_zone, gravatar):
+    def __init__(self, hass, origin, name, api_key, options, display_zone, gravatar, image):
         """Initialize the sensor."""
         self._hass = hass
         self._name = name
@@ -84,6 +86,7 @@ class GoogleGeocode(Entity):
         self._display_zone = display_zone.lower()
         self._state = "Awaiting Update"
         self._gravatar = gravatar
+        self._image = image
 
         self._street_number = None
         self._street = None
@@ -105,6 +108,8 @@ class GoogleGeocode(Entity):
 
         if gravatar is not None:
             self._picture = self._get_gravatar_for_email(gravatar)
+        elif image is not None:
+            self._picture = self._get_image_from_url(image)
         else:
             self._picture = None
 
@@ -316,3 +321,10 @@ class GoogleGeocode(Entity):
         import hashlib
         url = 'https://www.gravatar.com/avatar/{}.jpg?s=80&d=wavatar'
         return url.format(hashlib.md5(email.encode('utf-8').lower()).hexdigest())
+    
+    def _get_image_from_url(self, url: str):
+        """Return an image from a given url.
+        Async friendly.
+        """
+        import hashlib
+        return url.format(hashlib.md5(url.encode('utf-8').lower()).hexdigest())

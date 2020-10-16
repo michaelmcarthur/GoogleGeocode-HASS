@@ -39,7 +39,7 @@ api_key (Optional): Your application’s API key (get one by following the instr
 You need to register for an API key to use Google Geocode. This can be done by following these instructions
 * Go to [Google Maps Platform API](https://cloud.google.com/maps-platform/#get-started)
 * Click on 'Get Started'
-* Select 'Maps' and 'Places' then click 'continue'
+* Select 'Geocoding API' then click 'continue'
 * Create a new project or select an existing one then click 'next'.
 * Clcik 'Create Billing Account'
 * Create a name for the account then click 'Continue'

@@ -4,6 +4,6 @@
   "documentation": "https://github.com/michaelmcarthur/GoogleGeocode-HASS",
   "dependencies": [],
   "codeowners": [],
-  "requirements": []
+  "requirements": [],
   "version": "2019.05.02"
 }

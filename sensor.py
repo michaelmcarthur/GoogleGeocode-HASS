@@ -5,7 +5,7 @@ For more details about this platform, please refer to the documentation at
 https://github.com/michaelmcarthur/GoogleGeocode-HASS
 """
 from datetime import datetime
-from datetime import timedelta 
+from datetime import timedelta
 import logging
 import json
 import requests
@@ -67,7 +67,7 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
     origin = config.get(CONF_ORIGIN)
     options = config.get(CONF_OPTIONS)
     display_zone = config.get(CONF_DISPLAY_ZONE)
-    gravatar = config.get(CONF_GRAVATAR) 
+    gravatar = config.get(CONF_GRAVATAR)
 
     add_devices([GoogleGeocode(hass, origin, name, api_key, options, display_zone, gravatar)])
 
@@ -122,9 +122,9 @@ class GoogleGeocode(Entity):
     def entity_picture(self):
         """Return the picture of the device."""
         return self._picture
-        
+
     @property
-    def device_state_attributes(self):
+    def extra_state_attributes(self):
         """Return the state attributes."""
         return{
             ATTR_STREET_NUMBER: self._street_number,
@@ -192,7 +192,7 @@ class GoogleGeocode(Entity):
             country = ''
 
 
-            
+
             for result in decoded["results"]:
                 for component in result["address_components"]:
                     if 'street_number' in component["types"]:
@@ -260,9 +260,9 @@ class GoogleGeocode(Entity):
                     self._append_to_user_display(country)
                 if "formatted_address" in display_options:
                     self._append_to_user_display(formatted_address)
-                        
+
                 user_display = ', '.join(  x for x in user_display )
-                
+
                 if user_display == '':
                     user_display = street
                 self._state = user_display
@@ -308,7 +308,7 @@ class GoogleGeocode(Entity):
         """Get the lat/long string from an entities attributes."""
         attr = entity.attributes
         return "%s,%s" % (attr.get(ATTR_LATITUDE), attr.get(ATTR_LONGITUDE))
-        
+
     def _get_gravatar_for_email(self, email: str):
         """Return an 80px Gravatar for the given email address.
         Async friendly.
